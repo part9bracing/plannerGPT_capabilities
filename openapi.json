@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Planner GPT Capabilities",
-    "version": "0.2.0",
-    "description": "Endpoints for health, zoning (ArcGIS + BC Geocoder), and DPA4 (Underground Coal Mines)."
+    "version": "0.3.0",
+    "description": "Production endpoints for health, zoning (ArcGIS + BC Geocoder), and DPA4 Coal Mine Risk."
   },
   "servers": [
     { "url": "https://planner-gpt-capabilities.vercel.app" }
@@ -33,7 +33,7 @@
           { "name": "address", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Street address (BC Geocoder used if lat/lon not provided)" },
           { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" }, "description": "Latitude (WGS84)" },
           { "name": "lon", "in": "query", "required": false, "schema": { "type": "number" }, "description": "Longitude (WGS84)" },
-          { "name": "select", "in": "query", "required": false, "schema": { "type": "string" }, "description": "CSV of data fields to include (e.g., zoningDistrict,zoningName,category)" },
+          { "name": "select", "in": "query", "required": false, "schema": { "type": "string" }, "description": "CSV of fields to include (e.g., zoningDistrict,zoningName,category)" },
           { "name": "debug", "in": "query", "required": false, "schema": { "type": "string", "enum": ["0","1"] }, "description": "If '1', include meta.debug attributes" },
           { "name": "includeRaw", "in": "query", "required": false, "schema": { "type": "string", "enum": ["0","1"] }, "description": "If '1' and debug=1, include raw ArcGIS response" }
         ],
@@ -48,9 +48,9 @@
                     "value": {
                       "ok": true,
                       "capability": "zoning",
-                      "input": { "address": "455 Wallace St Nanaimo BC", "lat": 49.1639, "lon": -123.9380 },
+                      "input": { "address": "455 Wallace St Nanaimo BC", "lat": 49.1639, "lon": -123.938 },
                       "data": {
-                        "parcelCentroid": { "lat": 49.1639, "lon": -123.9380 },
+                        "parcelCentroid": { "lat": 49.1639, "lon": -123.938 },
                         "zoningDistrict": "DT7",
                         "zoningName": "Quennel Square",
                         "category": "Downtown",
@@ -67,19 +67,25 @@
               }
             }
           },
-          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "422": { "description": "Geocode failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "422": {
+            "description": "Geocode failed",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     },
     "/api/dpa4": {
       "get": {
         "operationId": "dpa4Lookup",
-        "summary": "Check if a point/address is within DPA4 (Underground Coal Mine Areas)",
+        "summary": "Check if a point/address is within DPA4 (Abandoned Mine Workings Hazard – Coal Mine Risk)",
         "parameters": [
           { "name": "address", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Street address (BC Geocoder used if lat/lon not provided)" },
-          { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" }, "description": "Latitude (WGS84)" },
-          { "name": "lon", "in": "query", "required": false, "schema": { "type": "number" }, "description": "Longitude (WGS84)" },
+          { "name": "lat", "in": "query", "required": false, "schema": { "type": "number" } },
+          { "name": "lon", "in": "query", "required": false, "schema": { "type": "number" } },
           { "name": "debug", "in": "query", "required": false, "schema": { "type": "string", "enum": ["0","1"] }, "description": "If '1', include meta.debug and raw ArcGIS attributes" }
         ],
         "responses": {
@@ -87,12 +93,40 @@
             "description": "DPA4 result",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DPA4Response" }
+                "schema": { "$ref": "#/components/schemas/DPA4Response" },
+                "examples": {
+                  "inside": {
+                    "value": {
+                      "ok": true,
+                      "capability": "dpa4",
+                      "input": { "address": "25 Victoria Rd Nanaimo BC", "lat": 49.1611, "lon": -123.9347 },
+                      "data": {
+                        "parcelCentroid": { "lat": 49.1611, "lon": -123.9347 },
+                        "inside": true,
+                        "dpaCode": "DPA4",
+                        "dpaName": "Abandoned Mine Workings Hazard – Coal Mine Risk",
+                        "notes": null,
+                        "source": "https://nanmap.nanaimo.ca/arcgis/rest/services/NanMap/CityPlan2022/MapServer/77"
+                      },
+                      "attribution": [
+                        { "name": "BC Address Geocoder", "url": "https://geocoder.api.gov.bc.ca/" },
+                        { "name": "City of Nanaimo GIS", "url": "https://nanmap.nanaimo.ca/arcgis/rest/services/NanMap/CityPlan2022/MapServer" }
+                      ],
+                      "meta": { "version": "0.2" }
+                    }
+                  }
+                }
               }
             }
           },
-          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "422": { "description": "Geocode failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "422": {
+            "description": "Geocode failed",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     }
@@ -122,6 +156,11 @@
           "url": { "type": "string", "format": "uri" }
         }
       },
+      "Point": {
+        "type": "object",
+        "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } },
+        "required": ["lat", "lon"]
+      },
       "ZoningResponse": {
         "type": "object",
         "properties": {
@@ -131,11 +170,7 @@
           "data": {
             "type": "object",
             "properties": {
-              "parcelCentroid": {
-                "type": "object",
-                "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } },
-                "required": ["lat", "lon"]
-              },
+              "parcelCentroid": { "$ref": "#/components/schemas/Point" },
               "zoningDistrict": { "type": "string", "nullable": true },
               "zoningName": { "type": "string", "nullable": true },
               "category": { "type": "string", "nullable": true },
@@ -158,17 +193,14 @@
           "data": {
             "type": "object",
             "properties": {
-              "parcelCentroid": {
-                "type": "object",
-                "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } },
-                "required": ["lat", "lon"]
-              },
+              "parcelCentroid": { "$ref": "#/components/schemas/Point" },
+              "inside": { "type": "boolean", "description": "True if location intersects DPA4 Coal Mine Risk polygon." },
               "dpaCode": { "type": "string", "nullable": true },
               "dpaName": { "type": "string", "nullable": true },
               "notes": { "type": "string", "nullable": true },
               "source": { "type": "string" }
             },
-            "required": ["parcelCentroid", "source"]
+            "required": ["parcelCentroid", "inside", "source"]
           },
           "attribution": { "type": "array", "items": { "$ref": "#/components/schemas/Attribution" } },
           "meta": { "type": "object", "additionalProperties": true }
