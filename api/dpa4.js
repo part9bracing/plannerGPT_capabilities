@@ -1,7 +1,8 @@
+// api/dpa4.js
 export const config = { runtime: "edge" };
 
 import { geocodeAddress } from "../lib/geocode.js";
-import { arcgisPointInPolygonQuery, mapAttributes } from "../lib/arcgis.js";
+import { arcgisPointInPolygonQuery } from "../lib/arcgis.js";
 
 let dpa4Registry;
 async function getRegistry() {
@@ -12,7 +13,8 @@ async function getRegistry() {
 function parse(url) {
   const sp = new URL(url).searchParams;
   const address = sp.get("address") || undefined;
-  const lat = sp.get("lat"); const lon = sp.get("lon");
+  const lat = sp.get("lat");
+  const lon = sp.get("lon");
   const debug = sp.get("debug") === "1";
   let coords = null;
   if (lat && lon) coords = { lat: parseFloat(lat), lon: parseFloat(lon) };
@@ -34,61 +36,51 @@ export default async function handler(req) {
   try {
     const { address, coords, debug } = parse(req.url);
     if (!address && !coords) {
-      return json({ ok:false, capability:"dpa4",
-        error:{ code:"BAD_REQUEST", message:"Provide ?address=... or ?lat=..&lon=.." } }, 400);
+      return json(
+        { ok: false, capability: "dpa4", error: { code: "BAD_REQUEST", message: "Provide ?address=... or ?lat=..&lon=.." } },
+        400
+      );
     }
 
     // 1) Resolve coords if only address given
     let point = coords, geocoder;
     if (!point && address) {
       const g = await geocodeAddress(address);
-      if (!g) return json({ ok:false, capability:"dpa4",
-        error:{ code:"GEOCODE_FAIL", message:"Could not geocode address" } }, 422);
+      if (!g) {
+        return json(
+          { ok: false, capability: "dpa4", error: { code: "GEOCODE_FAIL", message: "Could not geocode address" } },
+          422
+        );
+      }
       point = { lat: g.lat, lon: g.lon };
       geocoder = g.source;
     }
 
-    // 2) Active adapter
+    // 2) Active adapter (CityPlan2022 → Layer 77 Coal Mine Risk)
     const active = (await getRegistry()).find(r => r.active);
-    if (!active) return json({ ok:false, capability:"dpa4",
-      error:{ code:"ADAPTER_MISSING", message:"No active DPA4 adapter" } }, 500);
+    if (!active) {
+      return json(
+        { ok: false, capability: "dpa4", error: { code: "ADAPTER_MISSING", message: "No active DPA4 adapter" } },
+        500
+      );
+    }
+    const { serviceBase, layerId, outFields, srid = 4326 } = active;
 
-    const { serviceBase, layerId, outFields, fieldMap, srid = 4326 } = active;
-
-    // 3) ArcGIS query
+    // 3) ArcGIS query: intersects
     const { attributes, raw } = await arcgisPointInPolygonQuery({
       serviceBase, layerId, lat: point.lat, lon: point.lon, outFields, inSR: srid
     });
 
-    // 4) Normalize (layer has no name/code fields; presence = inside)
-const inside = !!attributes;  // true if a polygon intersected
-
-const data = {
-  parcelCentroid: point,
-  inside,  // <-- key flag the GPT will use
-  dpaCode: inside ? "DPA4" : null,
-  dpaName: inside ? "Abandoned Mine Workings Hazard – Coal Mine Risk" : null,
-  notes: null,
-  source: `${serviceBase}/${layerId}`
-};
-
-return json({
-  ok: true,
-  capability: "dpa4",
-  input: { address, ...point },
-  data,
-  attribution: [
-    geocoder
-      ? {
-          name: geocoder === "bc_geocoder" ? "BC Address Geocoder" : "OSM Nominatim",
-          url: geocoder === "bc_geocoder" ? "https://geocoder.api.gov.bc.ca/" : "https://nominatim.openstreetmap.org/"
-        }
-      : undefined,
-    { name: "City of Nanaimo GIS", url: serviceBase }
-  ].filter(Boolean),
-  meta: { version: "0.2", debug: debug ? { attributes, raw } : undefined }
-});
-
+    // 4) Normalize (presence = inside)
+    const inside = !!attributes;
+    const data = {
+      parcelCentroid: point,
+      inside,
+      dpaCode: inside ? "DPA4" : null,
+      dpaName: inside ? "Abandoned Mine Workings Hazard – Coal Mine Risk" : null,
+      notes: null,
+      source: `${serviceBase}/${layerId}`
+    };
 
     return json({
       ok: true,
@@ -96,17 +88,21 @@ return json({
       input: { address, ...point },
       data,
       attribution: [
-        geocoder ? {
-          name: geocoder === "bc_geocoder" ? "BC Address Geocoder" : "OSM Nominatim",
-          url: geocoder === "bc_geocoder" ? "https://geocoder.api.gov.bc.ca/" : "https://nominatim.openstreetmap.org/"
-        } : undefined,
+        geocoder
+          ? {
+              name: geocoder === "bc_geocoder" ? "BC Address Geocoder" : "OSM Nominatim",
+              url: geocoder === "bc_geocoder" ? "https://geocoder.api.gov.bc.ca/" : "https://nominatim.openstreetmap.org/"
+            }
+          : undefined,
         { name: "City of Nanaimo GIS", url: serviceBase }
       ].filter(Boolean),
-      meta: { version: "0.1", debug: debug ? { attributes, raw } : undefined }
+      meta: { version: "0.2", debug: debug ? { attributes, raw } : undefined }
     });
   } catch (e) {
     console.error("DPA4_ERROR", e);
-    return json({ ok:false, capability:"dpa4",
-      error:{ code:"UNEXPECTED", message:String(e?.message||e) } }, 500);
+    return json(
+      { ok: false, capability: "dpa4", error: { code: "UNEXPECTED", message: String(e?.message || e) } },
+      500
+    );
   }
 }
