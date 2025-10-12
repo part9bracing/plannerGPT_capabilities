@@ -1,6 +1,6 @@
 import { geocodeAddress } from "../lib/geocode.js";
 import { arcgisPointInPolygonQuery, mapAttributes } from "../lib/arcgis.js";
-import registry from "../lib/zoning.registry.json" assert { type: "json" };
+import registry from "../lib/zoning.registry.js";
 
 export const config = { runtime: "edge" };
 
