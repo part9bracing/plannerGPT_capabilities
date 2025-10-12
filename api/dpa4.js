@@ -60,16 +60,35 @@ export default async function handler(req) {
       serviceBase, layerId, lat: point.lat, lon: point.lon, outFields, inSR: srid
     });
 
-    // 4) Normalize (we’ll refine fieldMap after first debug)
-    const mapped = mapAttributes(attributes, fieldMap) || {};
-    const data = {
-      parcelCentroid: point,
-      // Common normalized keys for DPA results:
-      dpaCode: mapped.dpaCode ?? null,
-      dpaName: mapped.dpaName ?? null,
-      notes: mapped.notes ?? null,
-      source: `${serviceBase}/${layerId}`
-    };
+    // 4) Normalize (layer has no name/code fields; presence = inside)
+const inside = !!attributes;  // true if a polygon intersected
+
+const data = {
+  parcelCentroid: point,
+  inside,  // <-- key flag the GPT will use
+  dpaCode: inside ? "DPA4" : null,
+  dpaName: inside ? "Abandoned Mine Workings Hazard – Coal Mine Risk" : null,
+  notes: null,
+  source: `${serviceBase}/${layerId}`
+};
+
+return json({
+  ok: true,
+  capability: "dpa4",
+  input: { address, ...point },
+  data,
+  attribution: [
+    geocoder
+      ? {
+          name: geocoder === "bc_geocoder" ? "BC Address Geocoder" : "OSM Nominatim",
+          url: geocoder === "bc_geocoder" ? "https://geocoder.api.gov.bc.ca/" : "https://nominatim.openstreetmap.org/"
+        }
+      : undefined,
+    { name: "City of Nanaimo GIS", url: serviceBase }
+  ].filter(Boolean),
+  meta: { version: "0.2", debug: debug ? { attributes, raw } : undefined }
+});
+
 
     return json({
       ok: true,
