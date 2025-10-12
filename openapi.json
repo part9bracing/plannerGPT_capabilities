@@ -1,1 +1,55 @@
-
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GPT Capabilities API",
+    "version": "0.1.0",
+    "description": "Modular endpoints for zoning, seismic, and more."
+  },
+  "servers": [
+    { "url": "https://YOUR-VERCEL-DOMAIN" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/api/zoning": {
+      "get": {
+        "operationId": "zoningLookup",
+        "summary": "Lookup zoning for a point or address",
+        "parameters": [
+          { "name": "address", "in": "query", "schema": { "type": "string" }, "required": false, "description": "Street address if not providing lat/lon" },
+          { "name": "lat", "in": "query", "schema": { "type": "number" }, "required": false, "description": "Latitude (WGS84)" },
+          { "name": "lon", "in": "query", "schema": { "type": "number" }, "required": false, "description": "Longitude (WGS84)" }
+        ],
+        "responses": {
+          "200": { "description": "Zoning result (uniform response envelope)" },
+          "400": { "description": "Bad request" },
+          "422": { "description": "Geocode failed" }
+        }
+      }
+    },
+    "/api/seismic": {
+      "get": {
+        "operationId": "seismicLookup",
+        "summary": "Get seismic hazard values (Smax, Ss, S1) for a location",
+        "parameters": [
+          { "name": "address", "in": "query", "schema": { "type": "string" }, "required": false, "description": "Street address if not providing lat/lon" },
+          { "name": "lat", "in": "query", "schema": { "type": "number" }, "required": false, "description": "Latitude (WGS84)" },
+          { "name": "lon", "in": "query", "schema": { "type": "number" }, "required": false, "description": "Longitude (WGS84)" },
+          { "name": "site_class", "in": "query", "schema": { "type": "string", "enum": ["A","B","C","D","E","F","Unknown"], "default": "Unknown" }, "required": false, "description": "Optional site class" }
+        ],
+        "responses": {
+          "200": { "description": "Seismic result (uniform response envelope)" },
+          "400": { "description": "Bad request" },
+          "422": { "description": "Geocode failed" }
+        }
+      }
+    }
+  }
+}
