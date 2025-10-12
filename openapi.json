@@ -6,7 +6,7 @@
     "description": "Modular endpoints for zoning, seismic, and more."
   },
   "servers": [
-    { "url": "https://planner-gpt-capabilities-em2jpyrzy-part9bracings-projects.vercel.app" }
+    { "url": "https://planner-gpt-capabilities-git-main-part9bracings-projects.vercel.app" }
   ],
   "paths": {
     "/api/health": {
