@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Nanaimo_Zoning_Bylaw_4500",
+    "active": true,
+
+    "serviceBase": "https://nanmap.nanaimo.ca/arcgis/rest/services/NanMap/Zoning/MapServer",
+    "layerId": 1,
+
+    "outFields": ["*"],
+
+    "fieldMap": {
+      "ZONE_CODE": "zoningDistrict",
+      "ZONE_NAME": "zoningName",
+      "BYLAW": "bylawId",
+      "BYLAW_ID": "bylawId",
+      "BYLAWNO": "bylawId"
+    },
+
+    "srid": 4326,
+    "notes": "Layer 1 is 'Zoning Bylaw 4500 Fill' on the City's NanMap service."
+  }
+]
