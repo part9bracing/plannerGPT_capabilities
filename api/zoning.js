@@ -38,7 +38,7 @@ export default function handler(req) {
   // STUB payload (we will replace with ArcGIS point-in-polygon soon)
   const data = {
     parcelCentroid: coords || null,
-    zoningDistrict: "STUBs-R1",
+    zoningDistrict: "STUB-R1",
     zoningName: "Single Detached Residential (stub)",
     source: "arcgis: to-be-configured"
   };
